@@ -13,7 +13,7 @@ import (
 )
 
 const helpMessage = `
-Usage: run_bench [OPTIONS]
+Usage: go-run-bench [OPTIONS]
 
 Options:
   -help                           Show this help message and exit.
@@ -41,11 +41,11 @@ Options:
                                   Default: project working directory.
 
 Example:
-  go run run_bench.go -cooldown=10 -benchtime=5 -save=csv -wd=/absolute/path/to/directory
+  go-run-bench -cooldown=10 -benchtime=5 -save=csv -wd=/absolute/path/to/directory
 
   or
 
-  go run run_bench.go (it will run with default settings)`
+  go-run-bench (it will run with default settings)`
 
 type Run struct {
 	Name        string  `json:"name"`
