@@ -2,6 +2,16 @@
 
 [![][workflow-badge]][workflow-actions] [![Release][release-badge]][release] [![][license-badge]][license]
 
+Go Run Bench is a command-line tool for benchmarking Go tests in specified directories. It allows you to execute benchmarks with customizable parameters such as cooldown periods, benchmark durations, and output formats. The tool is designed to easily integrate with your workflow for efficient benchmarking and performance analysis.
+
+## Features:
+- Cooldown: Configure the cooldown period between benchmark runs.
+- Benchmark Duration: Set the duration for each benchmark run.
+- Memory Benchmarking: Optionally include memory usage metrics in the benchmark results.
+- Flexible Output: Save benchmark results in JSON or CSV format.
+- Custom Working Directory: Specify a custom directory to run benchmarks on.
+- This tool is ideal for developers who need a lightweight, configurable solution for running and recording benchmark results in Go projects.
+
 # Install
 
 To use this tool, ensure that Go is installed on your system. Then, download the repository and follow the build instructions provided in the project.
