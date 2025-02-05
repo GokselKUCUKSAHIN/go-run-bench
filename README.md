@@ -62,10 +62,17 @@ go-run-bench help
 MIT - Please check the [LICENSE](./LICENSE) file for full text.
 
 [workflow-actions]: https://github.com/GokselKUCUKSAHIN/go-run-bench/actions
+
 [workflow-badge]: https://github.com/GokselKUCUKSAHIN/go-run-bench/workflows/build/badge.svg
+
 [license]:https://github.com/GokselKUCUKSAHIN/go-run-bench/blob/main/LICENSE
+
 [license-badge]:https://img.shields.io/badge/License-MIT-blue.svg
+
 [release]: https://github.com/GokselKUCUKSAHIN/go-run-bench/releases
+
 [release-badge]: https://img.shields.io/github/v/release/GokselKUCUKSAHIN/go-run-bench.svg
+
 [go-report-img]: https://goreportcard.com/badge/github.com/Trendyol/es-query-builder
+
 [go-report]: https://goreportcard.com/report/github.com/Trendyol/es-query-builder
