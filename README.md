@@ -1,6 +1,6 @@
 # go-run-bench
 
-[![][workflow-badge]][workflow-actions] [![Release][release-badge]][release] [![][license-badge]][license]
+[![][workflow-badge]][workflow-actions] [![Release][release-badge]][release] [![][license-badge]][license] [![Go Report Card][go-report-img]][go-report]
 
 Go Run Bench is a command-line tool for benchmarking Go tests in specified directories. It allows you to execute benchmarks with customizable parameters such as cooldown periods, benchmark durations, and output formats. The tool is designed to easily integrate with your workflow for efficient benchmarking and performance analysis.
 
@@ -67,3 +67,5 @@ MIT - Please check the [LICENSE](./LICENSE) file for full text.
 [license-badge]:https://img.shields.io/badge/License-MIT-blue.svg
 [release]: https://github.com/GokselKUCUKSAHIN/go-run-bench/releases
 [release-badge]: https://img.shields.io/github/v/release/GokselKUCUKSAHIN/go-run-bench.svg
+[go-report-img]: https://goreportcard.com/badge/github.com/Trendyol/es-query-builder
+[go-report]: https://goreportcard.com/report/github.com/Trendyol/es-query-builder
