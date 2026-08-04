@@ -4,7 +4,8 @@ Thanks for your interest. This project stays small on purpose.
 
 ## Design principles
 
-- **0 dependencies** — Go standard library only. New third-party imports will be rejected.
+- **0 runtime dependencies** — Root module uses Go standard library only. Do not add third-party imports to the root `go.mod`.
+- **Integration deps stay nested** — Test-only dependencies (testcontainers, etc.) live under [`internal/integration-test/go.mod`](./internal/integration-test/go.mod), never in the root module.
 - **Simple stupid design** — Prefer clear, boring code over clever abstractions.
 - **Blazing fast execution** — Keep the happy path thin: find files → run `go test -bench` → save results.
 
@@ -23,13 +24,21 @@ go build -o go-run-bench .
 
 5. If you touch CLI flags or output behavior, update [README.md](./README.md) in the same PR.
 
+## Integration tests
+
+Docker daemon required. Nested module keeps root dep-free:
+
+```sh
+cd internal/integration-test && go test ./tests/... -v -count=1
+```
+
 ## Benchmark file convention
 
 The tool discovers files named `*_benchmark_test.go` under the working directory.
 
 ## Pull request checklist
 
-- [ ] No new dependencies in `go.mod`
+- [ ] No new dependencies in root `go.mod` (integration deps only under `internal/integration-test/`)
 - [ ] Design stays simple — no framework, no package sprawl for its own sake
 - [ ] `go build` succeeds
 - [ ] README updated when user-facing behavior changes

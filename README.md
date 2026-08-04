@@ -30,6 +30,11 @@ Setting a 10-second cooldown, 5-second benchmark duration, saving results in CSV
 go-run-bench -cooldown=10 -benchtime=5 -save=csv -wd=/absolute/path/to/directory
 ```
 
+Same on Windows (absolute path required; drive letter form):
+```bat
+go-run-bench -cooldown=10 -benchtime=5 -save=csv -wd=C:\absolute\path\to\directory
+```
+
 Disabling the cooldown (0 seconds), setting a 10-second benchmark duration, saving results in JSON format:
 ```sh
 go-run-bench -cooldown=0 -benchtime=10 -save=json
@@ -56,6 +61,20 @@ go-run-bench -help
 go-run-bench --help
 go-run-bench help
 ```
+
+# Integration tests
+
+Requires Docker. Runs the CLI inside a container via testcontainers (deps live in a nested module so the root stays dependency-free):
+
+```sh
+cd internal/integration-test && go test ./tests/... -v -count=1
+```
+
+# Community
+
+- [Contributing](./CONTRIBUTING.md)
+- [Code of Conduct](./CODE_OF_CONDUCT.md)
+- [Security](./SECURITY.md)
 
 # License
 
