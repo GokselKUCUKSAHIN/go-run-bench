@@ -37,11 +37,13 @@ Options:
                                   Default: json.
 
   -wd=value,                      Set the working directory. Valid value:
-  -workingdirectory=value         - An absolute path to a directory that exists.
+  -workingdirectory=value         - An absolute path to a directory that exists
+                                  (Unix: /path/to/dir, Windows: C:\path\to\dir).
                                   Default: project working directory.
 
 Example:
   go-run-bench -cooldown=10 -benchtime=5 -save=csv -wd=/absolute/path/to/directory
+  go-run-bench -save=csv -wd=C:\absolute\path\to\directory
 
   or
 
@@ -319,7 +321,7 @@ func workingDirectoryArg(path string) (string, error) {
 		return "", fmt.Errorf("%s not a directory path", path)
 	}
 	if !filepath.IsAbs(path) {
-		return "", fmt.Errorf("path must be absolute and start with /")
+		return "", fmt.Errorf("path must be absolute")
 	}
 	return path, nil
 }
