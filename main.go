@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,38 +17,39 @@ const helpMessage = `
 Usage: go-run-bench [OPTIONS]
 
 Options:
-  -help                           Show this help message and exit.
+  -help                         Show this help message and exit.
 
-  -cooldown=value                 Set the cooldown period. Valid values:
-                                  - "disabled" or "0" to disable cooldown.
-                                  - An integer between 1 and 300 (inclusive).
-                                  Default: 20 seconds.
+  -cooldown=value               Set the cooldown period. Valid values:
+                                - "disabled" or "0" to disable cooldown.
+                                - An integer between 1 and 300 (inclusive).
+                                Default: 20 seconds.
 
-  -benchtime=value                Set the benchmark time duration. Valid value:
-                                  - An integer between 1 and 30 (inclusive).
-                                  Default: 5 seconds.
+  -benchtime=value              Set the benchmark time duration. Valid value:
+                                - An integer between 1 and 30 (inclusive).
+                                Default: 5 seconds.
 
-  -benchmem=value                 Enable/Disables Set the memory benchmark. Valid value:
-                                  - A boolean true or false.
-                                  Default: false.
+  -benchmem=value               Enable/Disables Set the memory benchmark. Valid value:
+                                - A boolean true or false.
+                                Default: false.
 
-  -save=value                     Specify the format to save benchmark results. Valid values:
-                                  - "json" to save as JSON format.
-                                  - "csv" to save as CSV format.
-                                  Default: json.
+  -save=value                   Specify the format to save benchmark results to a file. Valid values:
+                                - "json" to save as JSON format.
+                                - "csv" to save as CSV format.
+                                Default: json (if neither save nor out is specified).
 
-  -wd=value,                      Set the working directory. Valid value:
-  -workingdirectory=value         - An absolute path to a directory that exists
-                                  (Unix: /path/to/dir, Windows: C:\path\to\dir).
-                                  Default: project working directory.
+  -out=value,                   Specify the format to output results to stdout (pipe support). Valid values:
+  -output=value                 - "json" to output as JSON format.
+                                - "csv" to output as CSV format.
+
+  -wd=value,                    Set the working directory. Valid value:
+  -workingdirectory=value       - An absolute path to a directory that exists
+                                (Unix: /path/to/dir, Windows: C:\path\to\dir).
+                                Default: project working directory.
 
 Example:
-  go-run-bench -cooldown=10 -benchtime=5 -save=csv -wd=/absolute/path/to/directory
-  go-run-bench -save=csv -wd=C:\absolute\path\to\directory
-
-  or
-
-  go-run-bench (it will run with default settings)`
+  go-run-bench -cooldown=10 -benchtime=5 -out=json | jq .
+  go-run-bench -save=csv -wd=/absolute/path/to/directory
+`
 
 type Run struct {
 	Name        string  `json:"name"`
@@ -67,6 +69,7 @@ type BenchmarkResult struct {
 type Parameters struct {
 	CooldownFunc     func()
 	SaveFunc         func([]*BenchmarkResult, string) error
+	OutputFunc       func([]*BenchmarkResult) error
 	WorkingDirectory string
 	Benchtime        uint
 	Benchmemory      bool
@@ -209,6 +212,24 @@ func saveResultsAsCSV(results []*BenchmarkResult, fileName string) error {
 	return nil
 }
 
+func outputResultsAsJSON(results []*BenchmarkResult) error {
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(results)
+}
+
+func outputResultsAsCSV(results []*BenchmarkResult) error {
+	var sb strings.Builder
+	sb.WriteString("Name;Score;ns/op;B/op;allocs/op\n")
+	for _, result := range results {
+		for _, run := range result.Runs {
+			fmt.Fprintf(&sb, "%s;%.1f;%.1f;%s;%s\n", run.Name, run.Score, run.NsPerOp, run.BytesPerOp, run.AllocsPerOp)
+		}
+	}
+	_, err := os.Stdout.WriteString(sb.String())
+	return err
+}
+
 func formatTimeAsFileName(t time.Time) string {
 	return t.Format("2006-01-02_15-04-05")
 }
@@ -225,25 +246,39 @@ func runBenchmarkSuite(parameters Parameters) error {
 	}
 	results := make([]*BenchmarkResult, 0)
 	startTime := time.Now()
-	fmt.Printf("-- Starting Benchmark Suite at %s\n", formatTimeAsStamp(startTime))
+
+	logWriter := io.Writer(os.Stdout)
+	if parameters.OutputFunc != nil {
+		logWriter = os.Stderr
+	}
+
+	fmt.Fprintf(logWriter, "-- Starting Benchmark Suite at %s\n", formatTimeAsStamp(startTime))
 	for _, testFile := range benchmarkTestFiles {
-		fmt.Printf("%s Running benchmark for %s\n", formatTimeAsStamp(time.Now()), testFile)
+		fmt.Fprintf(logWriter, "%s Running benchmark for %s\n", formatTimeAsStamp(time.Now()), testFile)
 		cmd := generateCommand(projectDirectory, testFile, parameters)
 		result, err := runCommand(cmd)
 		if err != nil {
-			fmt.Printf("Error! Failed to run benchmark for %s. err: %s", testFile, err.Error())
+			fmt.Fprintf(logWriter, "Error! Failed to run benchmark for %s. err: %s\n", testFile, err.Error())
 		}
 		results = append(results, result)
 		parameters.CooldownFunc()
 	}
 	endTime := time.Now()
 	elapsedTime := endTime.Sub(startTime)
-	fmt.Printf("-- Benchmark Suite completed at %s\n", formatTimeAsStamp(endTime))
-	fmt.Printf("-- Benchmarks ran for %.2fs\n", elapsedTime.Seconds())
-	resultFileName := fmt.Sprintf("benchmark_results_%s", formatTimeAsFileName(startTime))
-	if err = parameters.SaveFunc(results, resultFileName); err != nil {
-		return fmt.Errorf("could not save benchmark results to file %s: %w", resultFileName, err)
+	fmt.Fprintf(logWriter, "-- Benchmark Suite completed at %s\n", formatTimeAsStamp(endTime))
+	fmt.Fprintf(logWriter, "-- Benchmarks ran for %.2fs\n", elapsedTime.Seconds())
+
+	if parameters.OutputFunc != nil {
+		if err = parameters.OutputFunc(results); err != nil {
+			return fmt.Errorf("could not output benchmark results: %w", err)
+		}
+	} else if parameters.SaveFunc != nil {
+		resultFileName := fmt.Sprintf("benchmark_results_%s", formatTimeAsFileName(startTime))
+		if err = parameters.SaveFunc(results, resultFileName); err != nil {
+			return fmt.Errorf("could not save benchmark results to file %s: %w", resultFileName, err)
+		}
 	}
+
 	return nil
 }
 
@@ -309,6 +344,16 @@ func saveArg(value string) (func([]*BenchmarkResult, string) error, error) {
 	return nil, fmt.Errorf("illegal value for -save parameter")
 }
 
+func outputArg(value string) (func([]*BenchmarkResult) error, error) {
+	switch value {
+	case "json":
+		return outputResultsAsJSON, nil
+	case "csv":
+		return outputResultsAsCSV, nil
+	}
+	return nil, fmt.Errorf("illegal value for -out/-output parameter")
+}
+
 func workingDirectoryArg(path string) (string, error) {
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -346,15 +391,18 @@ func parseParameters(args []string) Parameters {
 	parameters := Parameters{
 		CooldownFunc:     func() { time.Sleep(20 * time.Second) },
 		SaveFunc:         saveResultsAsJSON,
+		OutputFunc:       nil,
 		WorkingDirectory: projectDirectory,
 		Benchtime:        5,
 		Benchmemory:      false,
 	}
+
+	hasOutSpecified := false
+
 	for _, arg := range args {
 		if isHelp(arg) {
 			printHelpAndExit()
 		}
-		// arg format: -key=value
 		if arg[0] != '-' {
 			fmt.Printf("Error: All arguments must start with a single hyphen (-)\n")
 			printHelpAndExit()
@@ -373,26 +421,26 @@ func parseParameters(args []string) Parameters {
 		case "benchmem":
 			parameters.Benchmemory = ensureResult(benchmemArg(value))
 		case "save":
+			if hasOutSpecified {
+				fmt.Printf("Error: You cannot use both -save and -out parameters at the same time.\n")
+				printHelpAndExit()
+			}
 			parameters.SaveFunc = ensureResult(saveArg(value))
+		case "out", "output":
+			parameters.OutputFunc = ensureResult(outputArg(value))
+			parameters.SaveFunc = nil
+			hasOutSpecified = true
 		case "wd", "workingdirectory":
 			parameters.WorkingDirectory = ensureResult(workingDirectoryArg(value))
 		default:
 			fmt.Printf("Error: unknown parameter <%s>. please read the help message 🙏\n", key)
 			printHelpAndExit()
 		}
-		// fmt.Printf("[DEBUG] key: %s, value: %s\n", key, value)
 	}
 	return parameters
 }
 
 func main() {
-	// -help
-	// -cooldown = disable, number[1,300] default 20
-	// -benchtime = number[1, 30] default 5
-	// -benchmem = bool, default false
-	// -save = json, csv default json
-	// -wd, -workingdirectory = string directory default project working directory later
-
 	parameters := parseParameters(os.Args[1:])
 	if err := runBenchmarkSuite(parameters); err != nil {
 		panic(err)
